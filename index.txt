@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>DOC 911 – Cosmic Playlist Transmission</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background: radial-gradient(circle at top, #111 0%, #000 50%, #000 100%);
+            color: #00ffff;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding-top: 140px;
+            overflow-x: hidden;
+            opacity: 0;
+            animation: pageFadeIn 1.5s ease-out forwards;
+        }
+
+        header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            padding: 20px 0;
+            background: rgba(0, 0, 0, 0.9);
+            border-bottom: 2px solid #00ffff;
+            box-shadow: 0 0 25px rgba(0, 255, 255, 0.3);
+            z-index: 1000;
+        }
+
+        header h1 {
+            color: #ff0080;
+            margin: 0;
+            letter-spacing: 4px;
+        }
+
+        .scanlines {
+            pointer-events: none;
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(to bottom,
+                    rgba(0, 0, 0, 0.2) 0,
+                    rgba(0, 0, 0, 0.2) 2px,
+                    transparent 3px,
+                    transparent 4px);
+            mix-blend-mode: soft-light;
+            opacity: 0.3;
+            z-index: 999;
+            animation: scanFlicker 4s infinite alternate ease-in-out;
+        }
+
+        .starfield {
+            position: fixed;
+            inset: 0;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .star {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #0ff 0%, #0ff6 40%, transparent 70%);
+            opacity: 0.5;
+            animation: floatStar 18s linear infinite;
+        }
+
+        .star:nth-child(odd) {
+            background: radial-gradient(circle, #ff00ff 0%, #ff00ff66 40%, transparent 70%);
+            animation-duration: 22s;
+        }
+
+        .logo {
+            margin-top: 80px;
+            width: 150px;
+            height: 150px;
+            filter: url(#warp) drop-shadow(0 0 20px #0ff);
+            transition: transform 1s, filter 1s;
+            cursor: pointer;
+        }
+
+        .logo:hover {
+            transform: rotate(720deg) scale(1.5);
+            filter: url(#warpStrong) drop-shadow(0 0 45px #ff0);
+        }
+
+        .player-label {
+            display: inline-block;
+            margin-top: 10px;
+            filter: drop-shadow(0 0 10px #0ff);
+            transition: filter 0.4s ease;
+        }
+
+        .player-label:hover {
+            filter: drop-shadow(0 0 20px #ff00ff);
+        }
+
+        /* ========== CORE PLAYER FRAME ========== */
+        .playlist-hud-wrap {
+            position: relative;
+            margin: 40px auto 10px auto;
+            max-width: 840px;
+            padding: 20px 40px;
+            border-radius: 22px;
+            background: radial-gradient(circle at top, #050b10 0%, #020308 60%, #000 100%);
+            box-shadow:
+                0 0 45px rgba(0, 255, 255, 0.25),
+                0 0 85px rgba(255, 0, 255, 0.15);
+            border: 1px solid rgba(0, 255, 255, 0.25);
+        }
+
+        .playlist-container {
+            position: relative;
+            margin: 0 auto;
+            max-width: 560px;
+            border-radius: 16px;
+            overflow: visible;
+            padding: 2px;
+            background:
+                linear-gradient(135deg, #00ffff 0%, #ff00ff 50%, #ffff00 100%);
+            box-shadow:
+                0 0 25px rgba(0, 255, 255, 0.3),
+                0 0 55px rgba(255, 0, 255, 0.2);
+            animation: neonPulse 3.5s ease-in-out infinite;
+        }
+
+        .playlist-inner {
+            border-radius: 14px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.92);
+            box-shadow: inset 0 0 30px rgba(0, 255, 255, 0.1);
+        }
+
+        .playlist-inner iframe {
+            width: 100%;
+            height: 315px;
+            display: block;
+        }
+
+        .playlist-container::before {
+            content: "DOC 911 // LIVE TRANSMISSION";
+            position: absolute;
+            top: -16px;
+            left: 8px;
+            font-size: 10px;
+            letter-spacing: 2px;
+            color: #00ffffdd;
+            text-shadow: 0 0 6px #0ff;
+            font-family: "Courier New", monospace;
+        }
+
+        .playlist-container::after {
+            content: "KART BARN NODE ONLINE";
+            position: absolute;
+            top: -16px;
+            right: 8px;
+            font-size: 10px;
+            letter-spacing: 2px;
+            color: #ff00ffdd;
+            text-shadow: 0 0 6px #f0f;
+            font-family: "Courier New", monospace;
+        }
+
+        /* ========== FLOATING HUD CONTROLS ========== */
+
+        .hud {
+            position: relative;
+            margin-top: 24px;
+            display: grid;
+            grid-template-columns: 1.1fr 1.1fr;
+            gap: 20px;
+            font-family: "Courier New", monospace;
+            font-size: 11px;
+            text-align: left;
+            color: #aefcff;
+        }
+
+        .hud-panel {
+            border-radius: 12px;
+            padding: 12px 14px;
+            background: linear-gradient(135deg,
+                    rgba(0, 30, 40, 0.9),
+                    rgba(20, 0, 40, 0.9));
+            border: 1px solid rgba(0, 255, 255, 0.25);
+            box-shadow:
+                0 0 18px rgba(0, 255, 255, 0.2),
+                inset 0 0 10px rgba(0, 0, 0, 0.8);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hud-panel::before {
+            content: "";
+            position: absolute;
+            top: -150%;
+            left: -50%;
+            width: 200%;
+            height: 300%;
+            background: conic-gradient(from 0deg,
+                    transparent 0deg,
+                    rgba(0, 255, 255, 0.12) 60deg,
+                    transparent 120deg);
+            opacity: 0.3;
+            mix-blend-mode: screen;
+            animation: hudSweep 8s linear infinite;
+        }
+
+        .hud-title {
+            font-size: 10px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #00ffff;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .hud-title span.dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #00ff9d;
+            box-shadow: 0 0 8px #00ff9d;
+            animation: pulseDot 1.6s ease-in-out infinite;
+        }
+
+        .hud-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .hud-label {
+            color: #6fe5ff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .hud-value {
+            color: #ffffffcc;
+        }
+
+        .hud-value.accent {
+            color: #ff7bff;
+        }
+
+        .hud-bar {
+            margin-top: 8px;
+            height: 4px;
+            border-radius: 999px;
+            background: linear-gradient(90deg,
+                    rgba(0, 255, 255, 0.1),
+                    rgba(0, 255, 255, 0.5),
+                    rgba(255, 0, 255, 0.7));
+            overflow: hidden;
+            position: relative;
+        }
+
+        .hud-bar::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -40%;
+            width: 40%;
+            height: 100%;
+            background: linear-gradient(90deg,
+                    transparent,
+                    rgba(255, 255, 255, 0.9),
+                    transparent);
+            animation: barSweep 3s linear infinite;
+        }
+
+        /* Right side controls */
+        .hud-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .hud-button-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .hud-btn {
+            flex: 1;
+            padding: 6px 0;
+            border-radius: 999px;
+            border: 1px solid rgba(0, 255, 255, 0.4);
+            background: radial-gradient(circle at top, #012b33, #020510);
+            color: #ccf9ff;
+            text-align: center;
+            font-size: 10px;
+            letter-spacing: 1px;
+            cursor: pointer;
+            text-transform: uppercase;
+            position: relative;
+            overflow: hidden;
+            transition: box-shadow 0.2s, transform 0.15s, border-color 0.2s;
+        }
+
+        .hud-btn::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg,
+                    rgba(0, 255, 255, 0.2),
+                    transparent,
+                    rgba(255, 0, 255, 0.2));
+            mix-blend-mode: screen;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .hud-btn:hover {
+            box-shadow: 0 0 14px rgba(0, 255, 255, 0.5);
+            transform: translateY(-1px);
+            border-color: #00ffff;
+        }
+
+        .hud-btn:hover::before {
+            opacity: 1;
+        }
+
+        .hud-btn:active {
+            transform: translateY(1px) scale(0.98);
+            box-shadow: 0 0 6px rgba(0, 255, 255, 0.4);
+        }
+
+        .toggle-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-top: 4px;
+        }
+
+        .toggle-label {
+            font-size: 10px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #7feeff;
+        }
+
+        .toggle-pill {
+            width: 60px;
+            height: 18px;
+            border-radius: 999px;
+            border: 1px solid rgba(0, 255, 255, 0.5);
+            padding: 2px;
+            display: flex;
+            align-items: center;
+            background: radial-gradient(circle at top, #02242d, #010409);
+            box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.9);
+            position: relative;
+        }
+
+        .toggle-knob {
+            width: 24px;
+            height: 12px;
+            border-radius: 999px;
+            background: linear-gradient(145deg, #00ffff, #0088ff);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.9);
+            margin-left: 32px;
+            /* “ON” position look */
+        }
+
+        .toggle-pill.off .toggle-knob {
+            margin-left: 0;
+            background: linear-gradient(145deg, #444, #111);
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
+        }
+
+        .toggle-status {
+            font-size: 9px;
+            color: #9fffd5;
+            text-shadow: 0 0 4px #00ff99;
+        }
+
+        .toggle-status.off {
+            color: #ff9fae;
+            text-shadow: 0 0 4px #ff0044;
+        }
+
+        /* Bottom mini status bar under HUD */
+        .hud-status-bar {
+            margin: 8px auto 0 auto;
+            max-width: 560px;
+            border-radius: 999px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            background: linear-gradient(90deg,
+                    rgba(0, 255, 255, 0.1),
+                    rgba(255, 0, 255, 0.1),
+                    rgba(0, 255, 255, 0.1));
+            padding: 4px 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-family: "Courier New", monospace;
+            font-size: 10px;
+            color: #c7faff;
+        }
+
+        .hud-status-bar span.label {
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #7fe2ff;
+        }
+
+        .hud-status-bar span.dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            margin-right: 6px;
+            background: #00ff9d;
+            box-shadow: 0 0 10px #00ff9d;
+            animation: pulseDot 1.8s ease-in-out infinite;
+        }
+
+        .hud-status-bar span.bitrate {
+            color: #ffddff;
+        }
+
+        footer {
+            margin-top: 60px;
+            padding: 30px 0;
+            background: radial-gradient(circle at top, #111 0%, #000 50%);
+            border-top: 2px solid #00ffff;
+            color: #ccc;
+            box-shadow: 0 -10px 30px rgba(0, 255, 255, 0.25);
+            transition: box-shadow 0.6s ease, border-color 0.6s ease;
+        }
+
+        footer:hover {
+            border-color: #ff00ff;
+            box-shadow:
+                0 -10px 40px rgba(255, 0, 255, 0.4),
+                0 -5px 20px rgba(0, 255, 255, 0.4);
+        }
+
+        footer img {
+            filter: drop-shadow(0 0 8px #0ff);
+        }
+
+        /* Animations */
+        @keyframes neonPulse {
+
+            0%,
+            100% {
+                box-shadow:
+                    0 0 25px rgba(0, 255, 255, 0.4),
+                    0 0 60px rgba(255, 0, 255, 0.3);
+            }
+
+            50% {
+                box-shadow:
+                    0 0 15px rgba(0, 255, 255, 0.2),
+                    0 0 40px rgba(255, 0, 255, 0.2);
+            }
+        }
+
+        @keyframes scanFlicker {
+            0% {
+                opacity: 0.15;
+            }
+
+            40% {
+                opacity: 0.3;
+            }
+
+            60% {
+                opacity: 0.2;
+            }
+
+            100% {
+                opacity: 0.35;
+            }
+        }
+
+        @keyframes floatStar {
+            0% {
+                transform: translate3d(0, 0, 0) scale(0.8);
+                opacity: 0.2;
+            }
+
+            50% {
+                transform: translate3d(-30px, -40px, 0) scale(1);
+                opacity: 0.7;
+            }
+
+            100% {
+                transform: translate3d(-60px, -80px, 0) scale(0.8);
+                opacity: 0.2;
+            }
+        }
+
+        @keyframes pageFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes hudSweep {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes pulseDot {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.7;
+            }
+
+            50% {
+                transform: scale(1.4);
+                opacity: 1;
+            }
+        }
+
+        @keyframes barSweep {
+            0% {
+                left: -40%;
+            }
+
+            100% {
+                left: 110%;
+            }
+        }
+
+        @media (max-width: 800px) {
+            body {
+                padding-top: 200px;
+            }
+
+            .logo {
+                margin-top: 100px;
+            }
+
+            .playlist-hud-wrap {
+                padding: 16px 14px;
+            }
+
+            .hud {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <a href="https://cooltext.com"><img src="https://images.cooltext.com/5746664.png" width="686" height="144" alt="JAHINVEGAS" /></a>
+    </header>
+
+
+    <!-- Starfield background -->
+    <div class="starfield">
+        <div class="star" style="top:5%; left:10%;"></div>
+        <div class="star" style="top:20%; left:80%;"></div>
+        <div class="star" style="top:40%; left:30%;"></div>
+        <div class="star" style="top:60%; left:60%;"></div>
+        <div class="star" style="top:75%; left:20%;"></div>
+        <div class="star" style="top:85%; left:90%;"></div>
+        <div class="star" style="top:10%; left:50%;"></div>
+        <div class="star" style="top:55%; left:10%;"></div>
+    </div>
+
+    <!-- CRT scanline overlay -->
+    <div class="scanlines"></div>
+    <a href="https://cooltext.com"><img src="https://images.cooltext.com/5746667.png" width="495" height="61" alt="Cosmic Transmission" /></a>
+
+    <!-- Spinning Blackhole Logo -->
+    <img class="logo" src="https://cdn.abacus.ai/images/3b3fc8a7-4195-4b70-868f-5f3ae0b78b76.png" alt="Blackhole Logo">
+
+    <!-- Player label -->
+
+
+    <!-- PLAYER + HUD WRAPPER -->
+    <div class="playlist-hud-wrap">
+
+        <!-- Embedded Playlist Frame -->
+        <div class="playlist-container">
+            <div class="playlist-inner">
+                <iframe src="https://www.youtube.com/embed/videoseries?list=PLrYD4SJlktuIrg7mSMkOqc2gc0Kixiayz&autoplay=1&mute=1&loop=1" title="DOC 911 Playlist Transmission" frameborder="0" allow="accelerometer; autoplay; encrypted-media; picture-in-picture" allowfullscreen>
+                </iframe>
+            </div>
+        </div>
+
+        <!-- FLOATING HUD CONTROLS -->
+        <div class="hud">
+            <!-- LEFT PANEL: INFO / TELEMETRY -->
+            <div class="hud-panel">
+                <div class="hud-title">
+                    <span class="dot"></span>
+                    CHANNEL TELEMETRY
+                </div>
+                <div class="hud-row">
+                    <span class="hud-label">Channel</span>
+                    <span class="hud-value accent">DOC 911 / KART BARN</span>
+                </div>
+                <div class="hud-row">
+                    <span class="hud-label">Orbit</span>
+                    <span class="hud-value">VEGAS-∞ BELT</span>
+                </div>
+                <div class="hud-row">
+                    <span class="hud-label">Signal</span>
+                    <span class="hud-value">NEON-BLACKHOLE LINK</span>
+                </div>
+                <div class="hud-row">
+                    <span class="hud-label">Mode</span>
+                    <span class="hud-value accent">COSMIC TRANSMISSION</span>
+                </div>
+                <div class="hud-bar"></div>
+            </div>
+
+            <!-- RIGHT PANEL: CONTROL BUTTONS & TOGGLES -->
+            <div class="hud-panel hud-controls">
+                <div class="hud-title">
+                    <span class="dot"></span>
+                    CONTROL MATRIX
+                </div>
+
+                <div class="hud-button-row">
+                    <div class="hud-btn">Play Node</div>
+                    <div class="hud-btn">Warp Skip</div>
+                    <div class="hud-btn">Grav Boost</div>
+                </div>
+
+                <div class="toggle-row">
+                    <div>
+                        <div class="toggle-label">Autoplay Sequence</div>
+                        <div class="toggle-status">ONLINE</div>
+                    </div>
+                    <div class="toggle-pill">
+                        <div class="toggle-knob"></div>
+                    </div>
+                </div>
+
+                <div class="toggle-row">
+                    <div>
+                        <div class="toggle-label">Cosmic Reverb</div>
+                        <div class="toggle-status off">SIMULATED</div>
+                    </div>
+                    <div class="toggle-pill off">
+                        <div class="toggle-knob"></div>
+                    </div>
+                </div>
+
+                <div class="toggle-row">
+                    <div>
+                        <div class="toggle-label">Blackhole Shield</div>
+                        <div class="toggle-status">LOCKED</div>
+                    </div>
+                    <div class="toggle-pill">
+                        <div class="toggle-knob"></div>
+                    </div>
+                </div>
+
+                <div class="hud-bar"></div>
+            </div>
+        </div>
+
+        <!-- BOTTOM STATUS STRIP -->
+        <div class="hud-status-bar">
+            <div style="display:flex; align-items:center; gap:6px;">
+                <span class="dot"></span>
+                <span class="label">Now Streaming</span>
+                <span> DOC 911 • Cosmic Playlist Transmission</span>
+            </div>
+            <div>
+                <span class="label">Bitrate</span>
+                <span class="bitrate"> 9.11 TB/s · Quantum FM</span>
+            </div>
+        </div>
+    </div>
+
+    <a href="https://cooltext.com">
+        <img src="https://images.cooltext.com/5746509.png" width="461" height="44" alt="Custom Interface built by DOC911">
+    </a>
+
+    <footer>
+        <a href="https://cooltext.com"><img src="https://images.cooltext.com/5746671.png" width="469" height="35" alt="2025 JAHINVEGAS All Rights Reserved." /></a>
+    </footer>
+
+    <!-- Warp Filters for Logo Animation -->
+    <svg style="position:absolute; width:0; height:0;">
+        <filter id="warp">
+            <feTurbulence type="fractalNoise" baseFrequency="0.015 0.025" numOctaves="2" seed="2" result="warp" />
+            <feDisplacementMap in="SourceGraphic" in2="warp" scale="20" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+        <filter id="warpStrong">
+            <feTurbulence type="fractalNoise" baseFrequency="0.02 0.04" numOctaves="3" seed="8" result="warpStrong" />
+            <feDisplacementMap in="SourceGraphic" in2="warpStrong" scale="40" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+    </svg>
+
+</body>
+
+</html>
